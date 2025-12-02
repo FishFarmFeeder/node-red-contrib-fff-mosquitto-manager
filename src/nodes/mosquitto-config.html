@@ -1,0 +1,66 @@
+<script type="text/javascript">
+    RED.nodes.registerType('mosquitto-config', {
+        category: 'config',
+        credentials: {
+            username: { type: "text" },
+            password: { type: "password" }
+        },
+        defaults: {
+            name: { value: "" },
+            broker: { value: "localhost", required: true },
+            port: { value: 1883, required: true, validate: RED.validators.number() }
+        },
+        label: function() {
+            return this.name || `${this.broker}:${this.port}`;
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="mosquitto-config">
+    <div class="form-row">
+        <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-config-input-name" placeholder="Optional name">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-broker"><i class="fa fa-globe"></i> Broker</label>
+        <input type="text" id="node-config-input-broker" placeholder="localhost">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-port"><i class="fa fa-random"></i> Port</label>
+        <input type="text" id="node-config-input-port" placeholder="1883">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-username"><i class="fa fa-user"></i> Username</label>
+        <input type="text" id="node-config-input-username" placeholder="admin">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-password"><i class="fa fa-lock"></i> Password</label>
+        <input type="password" id="node-config-input-password">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="mosquitto-config">
+    <p>Configuration for connecting to a Mosquitto MQTT broker with Dynamic Security Plugin.</p>
+    
+    <h3>Configuration</h3>
+    <dl class="message-properties">
+        <dt>Broker <span class="property-type">string</span></dt>
+        <dd>The hostname or IP address of the Mosquitto broker.</dd>
+        
+        <dt>Port <span class="property-type">number</span></dt>
+        <dd>The port number (default: 1883 for MQTT).</dd>
+        
+        <dt>Username <span class="property-type">string</span></dt>
+        <dd>Admin username with permissions to manage Dynamic Security.</dd>
+        
+        <dt>Password <span class="property-type">password</span></dt>
+        <dd>Admin password (stored encrypted by Node-RED).</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>This configuration node manages the connection to the Mosquitto broker and provides
+    the necessary authentication for managing users, roles, and groups via the Dynamic Security Plugin.</p>
+    
+    <p><strong>Note:</strong> The user must have permissions to publish and subscribe to
+    <code>$CONTROL/dynamic-security/#</code> topics.</p>
+</script>

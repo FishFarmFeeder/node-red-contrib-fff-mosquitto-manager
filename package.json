@@ -1,0 +1,55 @@
+{
+    "name": "node-red-contrib-fff-mosquitto-manager",
+    "version": "2.0.0",
+    "description": "Manage Mosquitto MQTT broker via Dynamic Security Plugin from Node-RED",
+    "main": "src/index.js",
+    "scripts": {
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "test:coverage": "jest --coverage",
+        "lint": "eslint src/**/*.js",
+        "lint:fix": "eslint src/**/*.js --fix",
+        "lint:md": "markdownlint README.md",
+        "format": "prettier --write src/**/*.js",
+        "format:check": "prettier --check src/**/*.js"
+    },
+    "keywords": [
+        "node-red",
+        "mosquitto",
+        "mqtt",
+        "broker",
+        "management",
+        "dynamic-security",
+        "iot",
+        "fff"
+    ],
+    "node-red": {
+        "version": ">=2.0.0",
+        "nodes": {
+            "mosquitto-config": "src/nodes/mosquitto-config.js",
+            "mosquitto-manager": "src/nodes/mosquitto-manager.js"
+        }
+    },
+    "author": "Carlos Fontán",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/FishFarmFeeder/node-red-contrib-fff-mosquitto-manager.git"
+    },
+    "dependencies": {
+        "mqtt": "^5.0.0",
+        "nanoid": "^3.3.7"
+    },
+    "devDependencies": {
+        "eslint": "^8.57.1",
+        "eslint-plugin-promise": "^7.2.1",
+        "jest": "^30.2.0",
+        "markdownlint-cli": "^0.46.0",
+        "node-red": "^4.1.1",
+        "node-red-node-test-helper": "^0.3.5",
+        "prettier": "^3.7.3"
+    },
+    "engines": {
+        "node": ">=14.0.0"
+    }
+}

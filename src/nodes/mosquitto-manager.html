@@ -1,0 +1,93 @@
+<script type="text/javascript">
+    RED.nodes.registerType('mosquitto-manager', {
+        category: 'network',
+        color: '#a6bbcf',
+        defaults: {
+            name: { value: "" },
+            server: { value: "", type: "mosquitto-config", required: true },
+            command: { value: "listClients", required: true }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "bridge.svg",
+        label: function() {
+            return this.name || "Mosquitto Manager";
+        },
+        paletteLabel: "mosquitto manager"
+    });
+</script>
+
+<script type="text/html" data-template-name="mosquitto-manager">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-globe"></i> Server</label>
+        <input type="text" id="node-input-server">
+    </div>
+    <div class="form-row">
+        <label for="node-input-command"><i class="fa fa-cogs"></i> Command</label>
+        <select id="node-input-command">
+            <option value="listClients">List Clients</option>
+            <option value="getClient">Get Client</option>
+            <option value="createClient">Create Client</option>
+            <option value="deleteClient">Delete Client</option>
+            <option value="enableClient">Enable Client</option>
+            <option value="disableClient">Disable Client</option>
+            <option value="setClientPassword">Set Client Password</option>
+            <option value="addClientRole">Add Client Role</option>
+            <option value="removeClientRole">Remove Client Role</option>
+            <option value="listRoles">List Roles</option>
+            <option value="createRole">Create Role</option>
+            <option value="deleteRole">Delete Role</option>
+            <option value="listGroups">List Groups</option>
+            <option value="createGroup">Create Group</option>
+            <option value="deleteGroup">Delete Group</option>
+        </select>
+    </div>
+</script>
+
+<script type="text/html" data-help-name="mosquitto-manager">
+    <p>Manage Mosquitto MQTT broker via the Dynamic Security Plugin.</p>
+    
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">object</span></dt>
+        <dd>Arguments for the command. Structure depends on the command selected.</dd>
+        
+        <dt class="optional">command <span class="property-type">string</span></dt>
+        <dd>Override the configured command for this message.</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">object</span></dt>
+        <dd>Response from the Mosquitto broker containing the command results.</dd>
+    </dl>
+
+    <h3>Details</h3>
+    <p>This node allows you to manage a Mosquitto broker with the Dynamic Security Plugin enabled.</p>
+    
+    <h4>Common Commands</h4>
+    <ul>
+        <li><strong>List Clients:</strong> Get all clients. No payload required.</li>
+        <li><strong>Create Client:</strong> Payload: <code>{ "username": "user1", "password": "pass123" }</code></li>
+        <li><strong>Delete Client:</strong> Payload: <code>{ "username": "user1" }</code></li>
+        <li><strong>Set Password:</strong> Payload: <code>{ "username": "user1", "password": "newpass" }</code></li>
+        <li><strong>Add Client Role:</strong> Payload: <code>{ "username": "user1", "rolename": "admin" }</code></li>
+    </ul>
+
+    <h4>Status Indicators</h4>
+    <ul>
+        <li><strong>Green dot:</strong> Connected and command succeeded</li>
+        <li><strong>Blue dot:</strong> Executing command</li>
+        <li><strong>Yellow ring:</strong> Reconnecting to broker</li>
+        <li><strong>Red ring:</strong> Disconnected or command failed</li>
+    </ul>
+
+    <h3>References</h3>
+    <ul>
+        <li><a href="https://mosquitto.org/documentation/dynamic-security/" target="_blank">Mosquitto Dynamic Security Plugin</a></li>
+    </ul>
+</script>
