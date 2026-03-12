@@ -28,7 +28,11 @@ class CommandExecutor {
 
     // Listen to responses
     this.connection.on('response', (message) => {
-      this._handleResponse(message);
+      try {
+        this._handleResponse(message);
+      } catch (e) {
+        this.logger.error('Unhandled error in response handler', e);
+      }
     });
   }
 
