@@ -18,7 +18,8 @@ class CommandExecutor {
     this.validation = validationRegistry;
     this.timeout = options.timeout || 10000; // Reduced timeout for faster feedback
     this.maxRetries = options.maxRetries || 3;
-    this.logger = new Logger({ component: 'CommandExecutor' });
+    const Logger = require('../utils/logger');
+    this.logger = new Logger({ component: 'CommandExecutor' }, options.loggerAdapter || null);
 
     // Sequential processing - only one command at a time
     this.pendingCommand = null;
@@ -81,45 +82,54 @@ class CommandExecutor {
   }
 
   _executeCommand(command, payload, attempt) {
+    // Use a deterministic promise.race between response and timeout so we avoid
+    // double-resolve races when responses and timeout happen concurrently.
     return new Promise((resolve, reject) => {
-      const timeoutHandle = setTimeout(() => {
-        this.pendingCommand = null;
+      let finished = false;
 
+      const onResolve = (res) => {
+        if (finished) return;
+        finished = true;
+        resolve(res);
+      };
+
+      const onReject = (err) => {
+        if (finished) return;
+        finished = true;
+        reject(err);
+      };
+
+      // Setup timeout
+      const timeoutHandle = setTimeout(() => {
+        if (finished) return;
+        // Retry logic
         if (attempt < this.maxRetries) {
           this.logger.warn('Command timeout, retrying', { command, attempt });
-          // Retry by adding back to front of queue
-          this.commandQueue.unshift({
-            command,
-            payload,
-            attempt: attempt + 1,
-            resolve,
-            reject,
-          });
+          // Re-enqueue with increased attempt
+          this.commandQueue.unshift({ command, payload, attempt: attempt + 1, resolve: onResolve, reject: onReject });
+          // mark not processing so _processQueue can continue
           this.isProcessing = false;
+          // process next
           this._processQueue();
         } else {
-          const error = new TimeoutError(
-            `Command ${command} timed out after ${this.timeout}ms`,
-          );
-          this.logger.error('Command timeout exceeded retries', error, {
-            command,
-            attempt,
-          });
-          reject(error);
+          const error = new TimeoutError(`Command ${command} timed out after ${this.timeout}ms`);
+          this.logger.error('Command timeout exceeded retries', error, { command, attempt });
+          onReject(error);
         }
       }, this.timeout);
 
+      // Set pendingCommand to allow handler to resolve/reject it
       this.pendingCommand = {
         command,
         resolve: (response) => {
           clearTimeout(timeoutHandle);
           this.pendingCommand = null;
-          resolve(response);
+          onResolve(response);
         },
         reject: (error) => {
           clearTimeout(timeoutHandle);
           this.pendingCommand = null;
-          reject(error);
+          onReject(error);
         },
       };
 
@@ -128,7 +138,7 @@ class CommandExecutor {
       } catch (error) {
         clearTimeout(timeoutHandle);
         this.pendingCommand = null;
-        reject(error);
+        onReject(error);
       }
     });
   }

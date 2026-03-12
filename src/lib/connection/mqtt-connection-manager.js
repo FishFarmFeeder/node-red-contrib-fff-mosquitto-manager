@@ -8,15 +8,17 @@ const IdGenerator = require('../utils/id-generator');
  * Responsibility: Manage MQTT connection lifecycle (SRP)
  */
 class MQTTConnectionManager extends EventEmitter {
-  constructor(config, mqttClient) {
+  constructor(config, mqttClient, options = {}) {
     super();
     this.config = config;
     this.mqttClient = mqttClient;
     this.client = null;
     this.isSubscribed = false;
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 10;
-    this.logger = new Logger({ component: 'MQTTConnectionManager' });
+    this.maxReconnectAttempts = options.maxReconnectAttempts || 10;
+    // allow optional logger adapter (maps to RED.log)
+    const Logger = require('../utils/logger');
+    this.logger = new Logger({ component: 'MQTTConnectionManager' }, options.loggerAdapter || null);
   }
 
   connect() {
@@ -54,11 +56,12 @@ class MQTTConnectionManager extends EventEmitter {
         this.logger.error('Max reconnect attempts reached', null, {
           attempts: this.reconnectAttempts,
         });
-        this.client.end();
-        this.emit(
-          'error',
-          new ConnectionError('Max reconnect attempts reached'),
-        );
+        try {
+          this.client.end();
+        } catch (e) {
+          // best-effort
+        }
+        this.emit('error', new ConnectionError('Max reconnect attempts reached'));
       } else {
         this.logger.warn('Reconnecting to broker', {
           attempt: this.reconnectAttempts,

@@ -15,7 +15,15 @@ module.exports = function (RED) {
     };
 
     // Create components (Dependency Injection for testability)
-    this.connectionManager = new MQTTConnectionManager(config, mqtt);
+    // Pass logger adapter to components so logs show up in Node-RED UI
+    const loggerAdapter = (RED && RED.log) ? {
+      debug: (m) => RED.log.debug(m),
+      info: (m) => RED.log.info(m),
+      warn: (m) => RED.log.warn(m),
+      error: (m) => RED.log.error(m),
+    } : null;
+
+    this.connectionManager = new MQTTConnectionManager(config, mqtt, { loggerAdapter });
 
     const validationRegistry = new ValidationRegistry();
     registerValidators(validationRegistry);
@@ -23,7 +31,7 @@ module.exports = function (RED) {
     this.commandExecutor = new CommandExecutor(
       this.connectionManager,
       validationRegistry,
-      { timeout: 30000, maxRetries: 3 },
+      { timeout: 30000, maxRetries: 3, loggerAdapter },
     );
 
     // Connect

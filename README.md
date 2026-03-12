@@ -2,7 +2,7 @@
 
 [![NPM](https://img.shields.io/npm/v/node-red-contrib-fff-mosquitto-manager)](https://www.npmjs.com/package/node-red-contrib-fff-mosquitto-manager)
 [![CI](https://github.com/FishFarmFeeder/node-red-contrib-fff-mosquitto-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/FishFarmFeeder/node-red-contrib-fff-mosquitto-manager/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-98.61%25-brightgreen)](https://github.com/FishFarmFeeder/node-red-contrib-fff-mosquitto-manager)
+<!-- Coverage badge removed: actual coverage reported by jest is dynamic and the README contained a stale hardcoded value. See CI for live coverage reports. -->
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A Node-RED node for managing Mosquitto MQTT broker via the Dynamic Security Plugin.
