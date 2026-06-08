@@ -7,11 +7,48 @@ module.exports = function (RED) {
   function MosquittoConfigNode(n) {
     RED.nodes.createNode(this, n);
 
+    // Read and validate numeric fields
+    const port = parseInt(n.port, 10);
+    const commandTimeout = parseInt(n.commandTimeout || 30000, 10);
+    const commandMaxRetries = parseInt(n.commandMaxRetries || 3, 10);
+    const maxReconnectAttempts = parseInt(n.maxReconnectAttempts || 10, 10);
+    const reconnectPeriod = parseInt(n.reconnectPeriod || 5000, 10);
+    const connectTimeout = parseInt(n.connectTimeout || 30000, 10);
+
+    if (Number.isNaN(port)) {
+      throw new Error('Invalid port number');
+    }
+
+    // Clamp/validate values but don't throw in runtime; fallback to defaults
+    const safeCommandTimeout = Number.isNaN(commandTimeout) || commandTimeout <= 0 ? 30000 : commandTimeout;
+    const safeCommandMaxRetries = Number.isNaN(commandMaxRetries) || commandMaxRetries < 0 ? 3 : commandMaxRetries;
+    const safeMaxReconnectAttempts = Number.isNaN(maxReconnectAttempts) || maxReconnectAttempts < 0 ? 10 : maxReconnectAttempts;
+    const safeReconnectPeriod = Number.isNaN(reconnectPeriod) || reconnectPeriod < 0 ? 5000 : reconnectPeriod;
+    const safeConnectTimeout = Number.isNaN(connectTimeout) || connectTimeout < 0 ? 30000 : connectTimeout;
+
+    // TLS options
+    const useTLS = n.useTLS === true || n.useTLS === 'true' || n.useTLS === '1';
+    const protocol = n.protocol || 'mqtt';
+    const tlsOptions = {};
+    if (useTLS || protocol === 'mqtts' || protocol === 'wss') {
+      if (n.ca) tlsOptions.ca = n.ca;
+      if (n.cert) tlsOptions.cert = n.cert;
+      if (n.key) tlsOptions.key = n.key;
+    }
+
     const config = {
       broker: n.broker,
-      port: n.port,
-      username: this.credentials.username,
-      password: this.credentials.password,
+      port,
+      username: this.credentials && this.credentials.username ? this.credentials.username : undefined,
+      password: this.credentials && this.credentials.password ? this.credentials.password : undefined,
+      commandTimeout: safeCommandTimeout,
+      commandMaxRetries: safeCommandMaxRetries,
+      maxReconnectAttempts: safeMaxReconnectAttempts,
+      reconnectPeriod: safeReconnectPeriod,
+      connectTimeout: safeConnectTimeout,
+      clean: n.clean !== false, // default true
+      protocol,
+      tlsOptions: Object.keys(tlsOptions).length > 0 ? tlsOptions : undefined,
     };
 
     // Create components (Dependency Injection for testability)
@@ -23,7 +60,7 @@ module.exports = function (RED) {
       error: (m) => RED.log.error(m),
     } : null;
 
-    this.connectionManager = new MQTTConnectionManager(config, mqtt, { loggerAdapter });
+    this.connectionManager = new MQTTConnectionManager(config, mqtt, { loggerAdapter, maxReconnectAttempts: config.maxReconnectAttempts });
 
     const validationRegistry = new ValidationRegistry();
     registerValidators(validationRegistry);
@@ -31,7 +68,7 @@ module.exports = function (RED) {
     this.commandExecutor = new CommandExecutor(
       this.connectionManager,
       validationRegistry,
-      { timeout: 30000, maxRetries: 3, loggerAdapter },
+      { timeout: config.commandTimeout, maxRetries: config.commandMaxRetries, loggerAdapter },
     );
 
     // Connect

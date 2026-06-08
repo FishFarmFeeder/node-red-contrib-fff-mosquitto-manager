@@ -22,19 +22,44 @@ class MQTTConnectionManager extends EventEmitter {
   }
 
   connect() {
-    const brokerUrl = `mqtt://${this.config.broker}:${this.config.port}`;
+    // Determine protocol and build URL
+    let brokerUrl;
+    const protocol = this.config.protocol || 'mqtt';
+    const port = this.config.port || 1883;
+
+    if (protocol === 'ws' || protocol === 'wss') {
+      // WebSocket
+      const wsProtocol = protocol === 'wss' ? 'wss' : 'ws';
+      brokerUrl = `${wsProtocol}://${this.config.broker}:${port}/mqtt`;
+    } else {
+      // Raw MQTT
+      const mqttProtocol = protocol === 'mqtts' ? 'mqtt' : protocol; // mqtt.js uses 'mqtt' for both
+      brokerUrl = `${mqttProtocol}://${this.config.broker}:${port}`;
+    }
+
     const options = {
       username: this.config.username,
       password: this.config.password,
       clientId: IdGenerator.generateClientId(),
-      reconnectPeriod: 5000,
-      connectTimeout: 30000,
-      clean: true,
+      reconnectPeriod: this.config.reconnectPeriod || 5000,
+      connectTimeout: this.config.connectTimeout || 30000,
+      clean: this.config.clean !== false,
     };
+
+    // Add TLS options if configured
+    if (this.config.tlsOptions) {
+      options.tls = this.config.tlsOptions;
+    }
+
+    // For mqtts/wss, enforce TLS
+    if (protocol === 'mqtts' || protocol === 'wss') {
+      options.tls = options.tls || {};
+    }
 
     this.logger.info('Connecting to broker', {
       broker: this.config.broker,
       port: this.config.port,
+      protocol,
     });
     this.client = this.mqttClient.connect(brokerUrl, options);
     this._attachEventHandlers();
@@ -83,6 +108,7 @@ class MQTTConnectionManager extends EventEmitter {
 
     // Message handler for responses
     this.client.on('message', (topic, message) => {
+      this.logger.debug('MQTT message received', { topic, message: message.toString() });
       if (topic === '$CONTROL/dynamic-security/v1/response') {
         this.emit('response', message);
       }

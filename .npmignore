@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Development
+.github/
+test/
+*.test.js
+jest.config.js
+.eslintrc.js
+.prettierrc
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs (optional - keep if you want)
+# docs/
+
+# Temp
+*.log
+npm-debug.log*

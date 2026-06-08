@@ -39,6 +39,23 @@ describe('Mosquitto Manager Node', () => {
     mosquittoManagerNode(mockRED);
   });
 
+  it('passes config options to components', () => {
+    // Simulate registering and creating the mosquitto-config node
+    mosquittoConfigNode(mockRED);
+    const MosquittoConfigConstructor = mockRED.nodes.registerType.mock.calls.find(c => c[0] === 'mosquitto-config')[1];
+
+    const config = { broker: 'localhost', port: 1883, commandTimeout: 1234, commandMaxRetries: 2, maxReconnectAttempts: 5 };
+    const node = new MosquittoConfigConstructor(config);
+
+    // The config node exposes executeCommand and connectionManager
+    expect(node.executeCommand).toBeDefined();
+    expect(node.connectionManager).toBeDefined();
+    // Validate options forwarded
+    expect(node.connectionManager.config.commandTimeout).toBe(1234);
+    expect(node.connectionManager.config.commandMaxRetries).toBe(2);
+    expect(node.connectionManager.config.maxReconnectAttempts).toBe(5);
+  });
+
   it('should register the node type', () => {
     mosquittoManagerNode(mockRED);
     expect(mockRED.nodes.registerType).toHaveBeenCalledWith('mosquitto-manager', expect.any(Function));

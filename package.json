@@ -1,6 +1,6 @@
 {
     "name": "node-red-contrib-fff-mosquitto-manager",
-    "version": "2.0.0",
+    "version": "0.0.1",
     "description": "Manage Mosquitto MQTT broker via Dynamic Security Plugin from Node-RED",
     "main": "src/index.js",
     "scripts": {
@@ -51,5 +51,8 @@
     },
     "engines": {
         "node": ">=14.0.0"
+    },
+    "jest": {
+        "setupFilesAfterEnv": ["<rootDir>/test/setupTests.js"]
     }
 }

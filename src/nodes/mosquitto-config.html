@@ -8,10 +8,38 @@
         defaults: {
             name: { value: "" },
             broker: { value: "localhost", required: true },
-            port: { value: 1883, required: true, validate: RED.validators.number() }
+            port: { value: 1883, required: true, validate: RED.validators.number() },
+            commandTimeout: { value: 30000 },
+            commandMaxRetries: { value: 3 },
+            maxReconnectAttempts: { value: 10 },
+            reconnectPeriod: { value: 5000 },
+            connectTimeout: { value: 30000 },
+            clean: { value: true },
+            protocol: { value: "mqtt" },
+            useTLS: { value: false },
+            ca: { value: "" },
+            cert: { value: "" },
+            key: { value: "" }
         },
         label: function() {
             return this.name || `${this.broker}:${this.port}`;
+        },
+        oneditprepare: function() {
+            // Toggle TLS fields based on checkbox and protocol
+            var showTlsFields = function() {
+                var useTls = $("#node-config-input-use-tls").prop("checked");
+                var protocol = $("#node-config-input-protocol").val();
+                var isMqtts = (protocol === "mqtts" || protocol === "wss");
+                if (useTls || isMqtts) {
+                    $("#tls-fields, #tls-fields-cert, #tls-fields-key").show();
+                } else {
+                    $("#tls-fields, #tls-fields-cert, #tls-fields-key").hide();
+                }
+            };
+            $("#node-config-input-use-tls").change(showTlsFields);
+            $("#node-config-input-protocol").change(showTlsFields);
+            // Initial state
+            showTlsFields();
         }
     });
 </script>
@@ -28,6 +56,57 @@
     <div class="form-row">
         <label for="node-config-input-port"><i class="fa fa-random"></i> Port</label>
         <input type="text" id="node-config-input-port" placeholder="1883">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-command-timeout"><i class="fa fa-clock-o"></i> Command timeout (ms)</label>
+        <input type="text" id="node-config-input-command-timeout" placeholder="30000">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-command-maxretries"><i class="fa fa-repeat"></i> Command max retries</label>
+        <input type="text" id="node-config-input-command-maxretries" placeholder="3">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-max-reconnect"><i class="fa fa-wifi"></i> MQTT max reconnect attempts</label>
+        <input type="text" id="node-config-input-max-reconnect" placeholder="10">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-reconnect-period"><i class="fa fa-clock-o"></i> Reconnect period (ms)</label>
+        <input type="text" id="node-config-input-reconnect-period" placeholder="5000">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-connect-timeout"><i class="fa fa-clock-o"></i> Connect timeout (ms)</label>
+        <input type="text" id="node-config-input-connect-timeout" placeholder="30000">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-protocol"><i class="fa fa-exchange"></i> Protocol</label>
+        <select id="node-config-input-protocol">
+            <option value="mqtt">MQTT (1883)</option>
+            <option value="mqtts">MQTTS (8883)</option>
+            <option value="ws">WebSocket (8080)</option>
+            <option value="wss">WebSocket TLS (8081)</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label>&nbsp;</label>
+        <input type="checkbox" id="node-config-input-clean" style="display:inline-block; width:auto;">
+        <span>Clean session</span>
+    </div>
+    <div class="form-row">
+        <label>&nbsp;</label>
+        <input type="checkbox" id="node-config-input-use-tls" style="display:inline-block; width:auto;">
+        <span>Use TLS</span>
+    </div>
+    <div class="form-row" id="tls-fields" style="display:none;">
+        <label for="node-config-input-ca"><i class="fa fa-file"></i> CA certificate (PEM)</label>
+        <textarea id="node-config-input-ca" rows="3" placeholder="-----BEGIN CERTIFICATE-----..."></textarea>
+    </div>
+    <div class="form-row" id="tls-fields-cert" style="display:none;">
+        <label for="node-config-input-cert"><i class="fa fa-file"></i> Client certificate (PEM)</label>
+        <textarea id="node-config-input-cert" rows="3" placeholder="-----BEGIN CERTIFICATE-----..."></textarea>
+    </div>
+    <div class="form-row" id="tls-fields-key" style="display:none;">
+        <label for="node-config-input-key"><i class="fa fa-key"></i> Client key (PEM)</label>
+        <textarea id="node-config-input-key" rows="3" placeholder="-----BEGIN PRIVATE KEY-----..."></textarea>
     </div>
     <div class="form-row">
         <label for="node-config-input-username"><i class="fa fa-user"></i> Username</label>

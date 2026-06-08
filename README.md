@@ -2,22 +2,33 @@
 
 [![NPM](https://img.shields.io/npm/v/node-red-contrib-fff-mosquitto-manager)](https://www.npmjs.com/package/node-red-contrib-fff-mosquitto-manager)
 [![CI](https://github.com/FishFarmFeeder/node-red-contrib-fff-mosquitto-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/FishFarmFeeder/node-red-contrib-fff-mosquitto-manager/actions/workflows/ci.yml)
-<!-- Coverage badge removed: actual coverage reported by jest is dynamic and the README contained a stale hardcoded value. See CI for live coverage reports. -->
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A Node-RED node for managing Mosquitto MQTT broker via the Dynamic Security Plugin.
+A Node-RED node for managing Mosquitto MQTT broker users, roles, and groups via the Dynamic Security Plugin. Manage your MQTT broker security directly from Node-RED flows without external tools.
 
-## ✨ Features
+## Why This Node?
 
-- 🔐 **User Management**: Create, delete, enable/disable clients
-- 🔑 **Password Management**: Set and update client passwords  
-- 👥 **Role Management**: Create roles and assign them to clients
-- 📦 **Group Management**: Organize clients into groups
-- ⚡ **Robust**: Automatic reconnection, timeout handling, and retry logic
-- ✅ **Validated**: Input validation for all commands with payloads
-- 🎨 **Visual Status**: Connection status indicators in Node-RED UI
+- **No CLI needed** — manage users/roles/groups directly from Node-RED
+- **Visual feedback** — connection status indicators in the editor
+- **Robust** — automatic reconnection, timeout handling, and retry logic
+- **Validated** — all commands validate input before sending to broker
+- **Flexible** — supports MQTT, MQTTS, WebSocket, and WebSocket TLS
 
-## 📦 Installation
+## Requirements
+
+- Node-RED v2.0+
+- Mosquitto broker v2.0+ with Dynamic Security Plugin enabled
+- Admin credentials with permissions on `$CONTROL/dynamic-security/#` topics
+
+## Installation
+
+### Option 1: Node-RED Palette (Recommended)
+
+1. Open Node-RED (`http://localhost:1880`)
+2. Go to **Menu → Manage palette → Install**
+3. Search for `node-red-contrib-fff-mosquitto-manager` and install
+
+### Option 2: Command Line
 
 ```bash
 cd ~/.node-red
@@ -26,205 +37,192 @@ npm install node-red-contrib-fff-mosquitto-manager
 
 Then restart Node-RED.
 
-## 🚀 Quick Start
+## Quick Start
 
-### Prerequisites
+### 1. Configure the Broker
 
-- Mosquitto broker v2.0+ with Dynamic Security Plugin enabled
-- Admin user with permissions on `$CONTROL/dynamic-security/#` topics
+1. Drag a `mosquitto manager` node into your flow
+2. Click the pencil icon next to "Server" to create a new config
+3. Enter your broker details:
+   - **Broker**: your Mosquitto IP/hostname
+   - **Port**: 1883 (or 8883 for MQTTS)
+   - **Username**: admin user
+   - **Password**: admin password
 
-### Basic Usage
+### 2. Send Commands
 
-1. **Add Configuration Node**:
-   - Drag `mosquitto manager` node into your flow
-   - Click the pencil icon next to "Server"
-   - Fill in broker details and admin credentials
+Select a command from the dropdown or override via `msg.command`:
 
-2. **Use Commands**:
-   - Select a command from the dropdown
-   - Send appropriate payload via `msg.payload`
+```javascript
+// List all clients
+msg.payload = {};
 
-### Example Flow
+// Create a new user
+msg.payload = {
+    username: "device1",
+    password: "securePassword123"
+};
+
+// Delete a user
+msg.payload = {
+    username: "device1"
+};
+
+// Enable/disable a user
+msg.payload = {
+    username: "device1",
+    disabled: true  // false to enable
+};
+
+// Change password
+msg.payload = {
+    username: "device1",
+    password: "newPassword456"
+};
+```
+
+### 3. Example Flow
 
 ```json
 [
     {
-        "id": "inject1",
+        "id": "inject-create",
         "type": "inject",
-        "name": "List Clients",
-        "payload": "",
-        "topic": "",
-        "wires": [["manager1"]]
+        "name": "Create User",
+        "payload": "{\"username\": \"sensor1\", \"password\": \"pass123\"}",
+        "payloadType": "json",
+        "wires": [["manager"]]
     },
     {
-        "id": "manager1",
+        "id": "manager",
         "type": "mosquitto-manager",
+        "name": "Mosquitto Manager",
+        "server": "config",
+        "command": "createClient",
+        "wires": [["debug"]]
+    },
+    {
+        "id": "debug",
+        "type": "debug",
         "name": "",
-        "server": "config1",
-        "command": "listClients",
-        "wires": [["debug1"]]
+        "wires": []
     }
 ]
 ```
 
-## 📖 Commands
+## Commands Reference
 
 ### Client Management
 
-#### List Clients
-
-No payload required.
-
-```javascript
-msg.payload = {};
-```
-
-#### Create Client
-
-```javascript
-msg.payload = {
-    username: "user1",
-    password: "securepass123"
-};
-```
-
-#### Delete Client
-
-```javascript
-msg.payload = {
-    username: "user1"
-};
-```
-
-#### Enable/Disable Client
-
-```javascript
-msg.payload = {
-    username: "user1"
-};
-```
-
-#### Set Client Password
-
-```javascript
-msg.payload = {
-    username: "user1",
-    password: "newsecurepass456"
-};
-```
+| Command | Description | Required Payload |
+|---------|-------------|------------------|
+| `listClients` | List all clients | none |
+| `createClient` | Create new client | `username`, `password` |
+| `deleteClient` | Delete client | `username` |
+| `enableClient` | Enable client | `username` |
+| `disableClient` | Disable client | `username` |
+| `setClientPassword` | Change client password | `username`, `password` |
 
 ### Role Management
 
-#### List Roles
-
-No payload required.
-
-#### Create Role
-
-```javascript
-msg.payload = {
-    rolename: "my-role"
-};
-```
-
-#### Add Role to Client
-
-```javascript
-msg.payload = {
-    username: "user1",
-    rolename: "my-role"
-};
-```
+| Command | Description | Required Payload |
+|---------|-------------|------------------|
+| `listRoles` | List all roles | none |
+| `createRole` | Create new role | `rolename` |
+| `addClientRole` | Assign role to client | `username`, `rolename` |
 
 ### Group Management
 
-#### List Groups
+| Command | Description | Required Payload |
+|---------|-------------|------------------|
+| `listGroups` | List all groups | none |
+| `createGroup` | Create new group | `groupname` |
 
-No payload required.
-
-#### Create Group
-
-```javascript
-msg.payload = {
-    groupname: "my-group"
-};
-```
-
-## ✅ Input Validation
-
-All commands that require a payload are validated for correctness:
-
-### Client Commands
-
-- **username**: Required, alphanumeric characters, hyphens, and underscores only
-- **password**: Required for creation/update, minimum 8 characters
-
-### Role Commands
-
-- **rolename**: Required, alphanumeric characters, hyphens, and underscores only
-
-### Group Commands
-
-- **groupname**: Required, alphanumeric characters, hyphens and underscores only
-
-Commands without payloads do not require validation.
-
-## 🔧 Configuration
+## Configuration
 
 ### mosquitto-config Node
 
 | Property | Description | Default |
 |----------|-------------|---------|
-| Broker | Hostname or IP of Mosquitto broker | localhost |
-| Port | MQTT port | 1883 |
-| Username | Admin username | admin |
+| Broker | Hostname or IP address | `localhost` |
+| Port | MQTT port | `1883` |
+| Username | Admin username | - |
 | Password | Admin password (encrypted) | - |
+| Command timeout (ms) | Max wait for broker response | `30000` |
+| Command max retries | Retry attempts on timeout | `3` |
+| Max reconnect attempts | MQTT reconnection limit | `10` |
+| Reconnect period (ms) | Time between reconnects | `5000` |
+| Connect timeout (ms) | MQTT connection timeout | `30000` |
+| Clean session | Start with fresh session | `true` |
+| Protocol | MQTT/MQTTS/WS/WSS | `mqtt` |
+| Use TLS | Enable TLS encryption | `false` |
+| CA certificate | TLS CA (PEM format) | - |
+| Client certificate | TLS client cert (PEM) | - |
+| Client key | TLS client key (PEM) | - |
 
 ### mosquitto-manager Node
 
 | Property | Description |
 |----------|-------------|
-| Server | Reference to mosquitto-config node |
+| Server | Reference to config node |
 | Command | Default command to execute |
 
-You can override the command per message by setting `msg.command`.
+Override command per message: `msg.command = "listClients"`
 
-## 🎨 Status Indicators
+## TLS / Secure Connections
 
-The node shows visual status in the Node-RED editor:
+### MQTTS (Port 8883)
 
-- 🟢 **Green dot**: Connected and ready / Command succeeded
-- 🔵 **Blue dot**: Executing command
-- 🟡 **Yellow ring**: Reconnecting to broker
-- 🔴 **Red ring**: Disconnected or command failed
+1. Set **Protocol** to `MQTTS`
+2. Enable **Use TLS**
+3. Optionally add CA certificate
 
-## 🏗️ Architecture
+### WebSocket TLS (Port 8081)
 
-This node follows SOLID principles with clean separation of concerns:
+1. Set **Protocol** to `WSS`
+2. Enable **Use TLS**
+3. Configure your broker to enable WebSocket:
+   ```conf
+   listener 8081
+   protocol websockets
+   ```
 
-- **MQTTConnectionManager**: Handles MQTT connection lifecycle
-- **CommandExecutor**: Executes commands with timeout and retry
-- **ValidationRegistry**: Validates command payloads
-- **Custom Validators**: Per-command validation logic
+### With Client Certificates
 
-## 🐛 Troubleshooting
+1. Enable **Use TLS**
+2. Paste your CA certificate, client certificate, and client key in PEM format
+
+## Status Indicators
+
+The node displays visual status in the Node-RED editor:
+
+| Status | Meaning |
+|--------|---------|
+| 🟢 Green dot | Connected, ready |
+| 🔵 Blue dot | Executing command |
+| 🟡 Yellow ring | Reconnecting |
+| 🔴 Red ring | Disconnected or error |
+
+## Troubleshooting
 
 ### "Not connected to broker"
 
 - Verify broker hostname and port
-- Check that broker is running: `docker ps` or `systemctl status mosquitto`
-- Verify credentials are correct
+- Check broker is running: `docker ps` or `systemctl status mosquitto`
+- Verify admin credentials are correct
+- Check broker logs for connection errors
 
-### "Validation failed: username is required"
+### "Validation failed"
 
-- Ensure you're sending correct payload structure for the command
-- Check examples in this README
+- Ensure `msg.payload` contains required fields
+- Check username format: alphanumeric, hyphens, underscores only
+- Password must be at least 8 characters
 
-### Commands timeout
+### "Command timed out"
 
-- Default timeout is 30 seconds
-- Check broker logs: `docker logs mosquitto-dev`
-- Verify Dynamic Security plugin is enabled in `mosquitto.conf`
+- Increase **Command timeout** in config (default 30s)
+- Check broker is responsive: `mosquitto_pub -t test -m "hello"`
+- Verify Dynamic Security plugin is loaded
 
 ### Dynamic Security not enabled
 
@@ -235,132 +233,53 @@ plugin /usr/lib/x86_64-linux-gnu/mosquitto_dynamic_security.so
 plugin_opt_config_file /mosquitto/config/dynamic-security.json
 ```
 
-## 🧪 Development
-
-### Project Structure
-
-```text
-node-red-contrib-fff-mosquitto-manager/
-├── src/
-│   ├── lib/
-│   │   ├── connection/          # MQTT connection management
-│   │   ├── commands/            # Command execution
-│   │   ├── validators/          # Input validation
-│   │   └── utils/               # Utilities (logger, errors, ID generator)
-│   └── nodes/
-│       ├── mosquitto-config.js   # Config node
-│       └── mosquitto-manager.js  # Manager node
-├── test/                         # Comprehensive test suite
-│   ├── unit/                    # Unit tests (98.61% coverage)
-│   └── integration/             # Integration tests
-└── examples/                     # Example flows
-```
-
-### Running from Source
+Create the initial admin user:
 
 ```bash
-cd ~/node-red-contrib-fff-mosquitto-manager
-npm install
-npm link
-
-cd ~/.node-red
-npm link node-red-contrib-fff-mosquitto-manager
+mosquitto_ctrl -u admin -p adminpass dynsec init /mosquitto/config/dynsec.json
 ```
 
-Restart Node-RED to see changes.
+## Advanced: Dynamic Commands
 
-## 📚 Related Projects
+You can send any command dynamically via `msg.command`:
 
-- [eclipse-mosquitto](https://mosquitto.org/) - MQTT broker
-- [node-red](https://nodered.org/) - Flow-based programming
-
-## 📝 License
-
-MIT - see [LICENSE](LICENSE) file
-
-## 🤝 Contributing
-
-Contributions welcome! Please open an issue or PR.
-
-### Development Setup
-
-1. Fork and clone the repository
-2. Install dependencies: `npm install`
-3. Run tests: `npm test`
-4. Run linting: `npm run lint`
-5. Run formatting: `npm run format`
-
-### Testing Guidelines
-
-This project maintains high test coverage (>80%) and follows these testing practices:
-
-#### Unit Tests
-
-- **Validators**: Test all validation rules, required fields, and format constraints
-- **Utilities**: Test error handling, logging, and helper functions
-- **Coverage**: Aim for 100% coverage on validators and utilities
-
-#### Integration Tests
-
-- **Command Execution**: Test command flow with mocked MQTT connections
-- **Node Functionality**: Test Node-RED node behavior with mocked RED runtime
-- **Error Scenarios**: Test timeout, validation failures, and connection issues
-
-#### Test Structure
-
-```text
-test/
-├── unit/                    # Unit tests for individual components
-│   ├── validator-name.test.js
-│   └── utility.test.js
-└── integration/             # Integration tests
-    ├── command-executor.integration.test.js
-    └── node-name.node.test.js
+```javascript
+// In a Function node
+msg.command = "listClients";
+msg.payload = {};
+return msg;
 ```
 
-#### Writing Tests
+## Architecture
 
-- Use descriptive test names that explain the behavior being tested
-- Test both success and failure scenarios
-- Mock external dependencies (MQTT connections, Node-RED runtime)
-- Follow the existing patterns in the codebase
+This node follows clean architecture principles:
 
-#### Running Tests
-
-```bash
-# Run all tests
-npm test
-
-# Run with coverage
-npm run test:coverage
-
-# Run only unit tests
-npx jest test/unit
-
-# Run only integration tests
-npx jest test/integration
+```
+src/
+├── lib/
+│   ├── connection/       # MQTT connection lifecycle
+│   ├── commands/         # Command execution with timeout/retry
+│   ├── validators/       # Input validation
+│   └── utils/           # Logger, errors, ID generation
+└── nodes/
+    ├── mosquitto-config.js   # Configuration node
+    └── mosquitto-manager.js  # Main node
 ```
 
-### Code Quality
+## Development
 
-- **Linting**: Code must pass ESLint checks (`npm run lint`)
-- **Formatting**: Code must be formatted with Prettier (`npm run format`)
-- **CI/CD**: All tests must pass on GitHub Actions before merging
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and coding standards.
 
-### Pull Request Process
+## License
 
-1. Create a feature branch from `main`
-2. Write tests for new functionality
-3. Ensure all tests pass and coverage is maintained
-4. Update documentation if needed
-5. Submit PR with clear description of changes
+MIT - See [LICENSE](LICENSE) file
 
-## 👤 Author
+## Author
 
 Carlos Fontán
 
-## 🔗 Links
+## Related
 
-- [NPM Package](https://www.npmjs.com/package/node-red-contrib-fff-mosquitto-manager)
-- [GitHub Repository](https://github.com/FishFarmFeeder/node-red-contrib-fff-mosquitto-manager)
-- [Mosquitto Dynamic Security Documentation](https://mosquitto.org/documentation/dynamic-security/)
+- [Mosquitto Broker](https://mosquitto.org/)
+- [Node-RED](https://nodered.org/)
+- [Mosquitto Dynamic Security Plugin](https://mosquitto.org/documentation/dynamic-security/)

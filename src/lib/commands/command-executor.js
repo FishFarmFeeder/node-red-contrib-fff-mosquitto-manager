@@ -170,6 +170,7 @@ class CommandExecutor {
 
       this.logger.debug('Response received', {
         hasPending: !!this.pendingCommand,
+        rawMessage: message.toString(),
         response: response.responses ? response.responses[0] : null,
       });
 

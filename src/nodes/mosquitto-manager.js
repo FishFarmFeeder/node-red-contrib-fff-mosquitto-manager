@@ -34,19 +34,15 @@ module.exports = function (RED) {
     });
 
     node.on('input', async (msg, send, done) => {
-      // For Node-RED 0.x compatibility
-      send =
-        send ||
-        function () {
-          node.send.apply(node, arguments);
+      // Node-RED 1.x+ passes send/done, but keep simple fallback for safety
+      if (!send) {
+        send = (msgs) => node.send(msgs);
+      }
+      if (!done) {
+        done = (err) => {
+          if (err) node.error(err, msg);
         };
-      done =
-        done ||
-        function (err) {
-          if (err) {
-            node.error(err, msg);
-          }
-        };
+      }
 
       const command = msg.command || node.command;
       let payload = {};

@@ -8,14 +8,6 @@ const nanoid = customAlphabet(
 
 class IdGenerator {
   /**
-   * Generate a unique request ID
-   * @returns {string} Unique ID
-   */
-  static generateRequestId() {
-    return nanoid();
-  }
-
-  /**
    * Generate a unique client ID for MQTT
    * @returns {string} Client ID
    */
